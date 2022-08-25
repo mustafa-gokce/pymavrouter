@@ -12,7 +12,7 @@ thread_endpoints = []
 
 
 # connect to vehicle
-def connection_vehicle(connection_string, connection_timeout=5):
+def connection_vehicle(connection_string, connection_timeout=5.0):
     # get global variables
     global terminate
     global vehicle, endpoints
@@ -40,7 +40,7 @@ def connection_vehicle(connection_string, connection_timeout=5):
                 vehicle = None
 
             # cool down the reconnection
-            time.sleep(1)
+            time.sleep(connection_timeout)
 
             # continue to reconnection to vehicle
             continue
@@ -157,7 +157,7 @@ def connection_endpoint(connection_string, connection_timeout=5):
                 endpoint = None
 
             # cool down the reconnection
-            time.sleep(1)
+            time.sleep(connection_timeout)
 
             # continue to reconnection to endpoint
             continue
@@ -278,7 +278,7 @@ def main(master, out, timeout):
     # infinite loop
     while True:
         try:
-            time.sleep(0.1)
+            time.sleep(timeout)
         except KeyboardInterrupt:
             terminate = True
             break
