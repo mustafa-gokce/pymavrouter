@@ -1,7 +1,8 @@
 import time
 import threading
 import click
-import pymavlink.mavutil
+import pymavlink.mavutil as utility
+import pymavlink.dialects.v20.all as dialect
 
 # global variables
 terminate = False
@@ -12,7 +13,7 @@ thread_endpoints = []
 
 
 # connect to vehicle
-def connection_vehicle(connection_string, connection_timeout=5.0):
+def connection_vehicle(connection_string, connection_timeout=5.0, message_rate=4):
     # get global variables
     global terminate
     global vehicle, endpoints
@@ -27,7 +28,19 @@ def connection_vehicle(connection_string, connection_timeout=5.0):
         try:
 
             # create vehicle connection
-            vehicle = pymavlink.mavutil.mavlink_connection(device=connection_string)
+            vehicle = utility.mavlink_connection(device=connection_string)
+
+            # user requested all the available streams from vehicle
+            if message_rate > 0:
+                # wait a heartbeat message from vehicle
+                vehicle.wait_heartbeat()
+
+                # request all available streams from vehicle
+                vehicle.mav.request_data_stream_send(target_system=vehicle.target_system,
+                                                     target_component=vehicle.target_component,
+                                                     req_stream_id=dialect.MAV_DATA_STREAM_ALL,
+                                                     req_message_rate=message_rate,
+                                                     start_stop=1)
 
         except Exception as e:
 
@@ -139,7 +152,7 @@ def connection_endpoint(connection_string, connection_timeout=5):
         try:
 
             # create endpoint connection
-            endpoint = pymavlink.mavutil.mavlink_connection(device=connection_string)
+            endpoint = utility.mavlink_connection(device=connection_string)
 
             # add endpoint connection to list
             endpoints.append(endpoint)
@@ -266,14 +279,16 @@ def connection_endpoint(connection_string, connection_timeout=5):
               help="Comma seperated MAVLink connection string list of endpoints.")
 @click.option("--timeout", default=5.0, type=click.FloatRange(min=5, clamp=True), required=False,
               help="Try to reconnect after this seconds when no message is received.")
-def main(master, out, timeout):
+@click.option("--rate", default=4, type=click.IntRange(min=0, clamp=True), required=False,
+              help="Message stream that will be requested from vehicle, zero means do not request.")
+def main(master, out, timeout, rate):
     # get global variables
     global terminate
     global vehicle, endpoints
     global thread_vehicle, thread_endpoints
 
     # start master connection thread
-    thread_vehicle = threading.Thread(target=connection_vehicle, args=(master, timeout))
+    thread_vehicle = threading.Thread(target=connection_vehicle, args=(master, timeout, rate))
     thread_vehicle.start()
 
     for device in out.split(","):
