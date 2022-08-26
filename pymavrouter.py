@@ -57,8 +57,12 @@ def connection_vehicle(connection_string, connection_timeout=5.0):
                     # try to receive a message within timeout
                     message = vehicle.recv_match(blocking=True, timeout=connection_timeout)
 
+                    # get the message name
+                    message_content = message.to_dict()
+                    message_name = message_content["mavpackettype"]
+
                     # received a message within timeout
-                    if message is not None:
+                    if message is not None and message_name != "BAD_DATA":
                         # get message buffer
                         message_buffer = message.get_msgbuf()
 
@@ -174,8 +178,12 @@ def connection_endpoint(connection_string, connection_timeout=5):
                     # try to receive a message within timeout
                     message = endpoint.recv_match(blocking=True, timeout=connection_timeout)
 
+                    # get the message name
+                    message_content = message.to_dict()
+                    message_name = message_content["mavpackettype"]
+
                     # received a message within timeout
-                    if message is not None:
+                    if message is not None and message_name != "BAD_DATA":
                         # get message buffer
                         message_buffer = message.get_msgbuf()
 
