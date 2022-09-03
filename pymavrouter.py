@@ -75,7 +75,7 @@ def connection_vehicle(connection_string, connection_timeout=5.0, message_rate=4
                     message_name = message_content["mavpackettype"]
 
                     # received a message within timeout
-                    if message is not None and message_name != "BAD_DATA":
+                    if message is not None and message_name != "BAD_DATA" and not message_name.startswith("UNKNOWN"):
                         # get message buffer
                         message_buffer = message.get_msgbuf()
 
@@ -196,7 +196,7 @@ def connection_endpoint(connection_string, connection_timeout=5):
                     message_name = message_content["mavpackettype"]
 
                     # received a message within timeout
-                    if message is not None and message_name != "BAD_DATA":
+                    if message is not None and message_name != "BAD_DATA" and not message_name.startswith("UNKNOWN"):
                         # get message buffer
                         message_buffer = message.get_msgbuf()
 
