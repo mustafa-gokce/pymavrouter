@@ -70,6 +70,20 @@ def connection_vehicle(connection_string, connection_timeout=5.0, message_rate=4
                     # try to receive a message within timeout
                     message = vehicle.recv_match(blocking=True, timeout=connection_timeout)
 
+                    # not received a message within timeout or user requested program termination
+                    if message is None or terminate:
+
+                        # check vehicle is existed
+                        if vehicle is not None:
+                            # close the vehicle
+                            vehicle.close()
+
+                            # clear the vehicle connection
+                            vehicle = None
+
+                        # break the inner loop
+                        break
+
                     # get the message name
                     message_content = message.to_dict()
                     message_name = message_content["mavpackettype"]
@@ -86,20 +100,6 @@ def connection_vehicle(connection_string, connection_timeout=5.0, message_rate=4
                             if endpoint is not None:
                                 # send the received message from vehicle to endpoint
                                 endpoint.write(message_buffer)
-
-                    # not received a message within timeout or user requested program termination
-                    if message is None or terminate:
-
-                        # check vehicle is existed
-                        if vehicle is not None:
-                            # close the vehicle
-                            vehicle.close()
-
-                            # clear the vehicle connection
-                            vehicle = None
-
-                        # break the inner loop
-                        break
 
                 # vehicle does not exist
                 else:
@@ -191,20 +191,6 @@ def connection_endpoint(connection_string, connection_timeout=5):
                     # try to receive a message within timeout
                     message = endpoint.recv_match(blocking=True, timeout=connection_timeout)
 
-                    # get the message name
-                    message_content = message.to_dict()
-                    message_name = message_content["mavpackettype"]
-
-                    # received a message within timeout
-                    if message is not None and message_name != "BAD_DATA" and not message_name.startswith("UNKNOWN"):
-                        # get message buffer
-                        message_buffer = message.get_msgbuf()
-
-                        # check if vehicle exist
-                        if vehicle is not None:
-                            # send the received message from endpoint to vehicle
-                            vehicle.write(message_buffer)
-
                     # not received a message within timeout or user requested program termination
                     if message is None or terminate:
 
@@ -224,6 +210,20 @@ def connection_endpoint(connection_string, connection_timeout=5):
 
                         # break the inner loop
                         break
+
+                    # get the message name
+                    message_content = message.to_dict()
+                    message_name = message_content["mavpackettype"]
+
+                    # received a message within timeout
+                    if message is not None and message_name != "BAD_DATA" and not message_name.startswith("UNKNOWN"):
+                        # get message buffer
+                        message_buffer = message.get_msgbuf()
+
+                        # check if vehicle exist
+                        if vehicle is not None:
+                            # send the received message from endpoint to vehicle
+                            vehicle.write(message_buffer)
 
                 # vehicle does not exist
                 else:
