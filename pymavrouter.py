@@ -161,12 +161,6 @@ def connection_endpoint(connection_string, connection_timeout=5):
 
             # there is an endpoint object
             if endpoint is not None:
-
-                # remove it from list
-                for i in range(len(endpoints)):
-                    if endpoint.address == endpoints[i].address:
-                        del endpoints[i]
-
                 # close the endpoint
                 endpoint.close()
 
@@ -196,12 +190,6 @@ def connection_endpoint(connection_string, connection_timeout=5):
 
                         # check endpoint is existed
                         if endpoint is not None:
-
-                            # remove it from list
-                            for i in range(len(endpoints)):
-                                if endpoint.address == endpoints[i].address:
-                                    del endpoints[i]
-
                             # close the endpoint
                             endpoint.close()
 
@@ -236,12 +224,6 @@ def connection_endpoint(connection_string, connection_timeout=5):
 
                 # check endpoint is existed
                 if endpoint is not None:
-
-                    # remove it from list
-                    for i in range(len(endpoints)):
-                        if endpoint.address == endpoints[i].address:
-                            del endpoints[i]
-
                     # close the endpoint
                     endpoint.close()
 
@@ -256,12 +238,6 @@ def connection_endpoint(connection_string, connection_timeout=5):
 
             # check endpoint is existed
             if endpoint is not None:
-
-                # remove it from list
-                for i in range(len(endpoints)):
-                    if endpoint.address == endpoints[i].address:
-                        del endpoints[i]
-
                 # close the endpoint
                 endpoint.close()
 
