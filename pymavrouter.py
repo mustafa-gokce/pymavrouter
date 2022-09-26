@@ -13,13 +13,19 @@ thread_endpoints = []
 
 
 # connect to vehicle
-def connection_vehicle(connection_string, connection_timeout=5.0, message_rate=4):
+def connection_vehicle(master_connections, connection_timeout=5.0, message_rate=4):
     # get global variables
     global terminate
     global vehicle, endpoints
 
     # this will run until terminate
     while True:
+
+        # get connection string
+        connection_string = master_connections[0]
+
+        # rotate connection string list
+        master_connections.append(master_connections.pop(0))
 
         # initiate vehicle
         vehicle = None
@@ -28,12 +34,17 @@ def connection_vehicle(connection_string, connection_timeout=5.0, message_rate=4
         try:
 
             # create vehicle connection
-            vehicle = utility.mavlink_connection(device=connection_string)
+            vehicle = utility.mavlink_connection(device=connection_string, udp_timeout=connection_timeout)
 
             # user requested all the available streams from vehicle
             if message_rate > 0:
+
                 # wait a heartbeat message from vehicle
-                vehicle.wait_heartbeat()
+                heartbeat = vehicle.wait_heartbeat(timeout=connection_timeout)
+
+                # reconnect to vehicle if no heartbeat received
+                if not heartbeat:
+                    continue
 
                 # request all available streams from vehicle
                 vehicle.mav.request_data_stream_send(target_system=vehicle.target_system,
@@ -46,6 +57,7 @@ def connection_vehicle(connection_string, connection_timeout=5.0, message_rate=4
 
             # there is a vehicle object
             if vehicle is not None:
+
                 # close the vehicle
                 vehicle.close()
 
@@ -75,6 +87,7 @@ def connection_vehicle(connection_string, connection_timeout=5.0, message_rate=4
 
                         # check vehicle is existed
                         if vehicle is not None:
+
                             # close the vehicle
                             vehicle.close()
 
@@ -90,6 +103,7 @@ def connection_vehicle(connection_string, connection_timeout=5.0, message_rate=4
 
                     # received a message within timeout
                     if message is not None and message_name != "BAD_DATA" and not message_name.startswith("UNKNOWN"):
+
                         # get message buffer
                         message_buffer = message.get_msgbuf()
 
@@ -98,6 +112,7 @@ def connection_vehicle(connection_string, connection_timeout=5.0, message_rate=4
 
                             # check if endpoint exist
                             if endpoint is not None:
+
                                 # send the received message from vehicle to endpoint
                                 endpoint.write(message_buffer)
 
@@ -112,6 +127,7 @@ def connection_vehicle(connection_string, connection_timeout=5.0, message_rate=4
 
                 # check vehicle is existed
                 if vehicle is not None:
+
                     # close the vehicle
                     vehicle.close()
 
@@ -126,6 +142,7 @@ def connection_vehicle(connection_string, connection_timeout=5.0, message_rate=4
 
             # check vehicle is existed
             if vehicle is not None:
+
                 # close the vehicle
                 vehicle.close()
 
@@ -152,7 +169,7 @@ def connection_endpoint(connection_string, connection_timeout=5):
         try:
 
             # create endpoint connection
-            endpoint = utility.mavlink_connection(device=connection_string)
+            endpoint = utility.mavlink_connection(device=connection_string, udp_timeout=connection_timeout)
 
             # add endpoint connection to list
             endpoints.append(endpoint)
@@ -161,6 +178,7 @@ def connection_endpoint(connection_string, connection_timeout=5):
 
             # there is an endpoint object
             if endpoint is not None:
+
                 # close the endpoint
                 endpoint.close()
 
@@ -190,6 +208,7 @@ def connection_endpoint(connection_string, connection_timeout=5):
 
                         # check endpoint is existed
                         if endpoint is not None:
+
                             # close the endpoint
                             endpoint.close()
 
@@ -205,11 +224,13 @@ def connection_endpoint(connection_string, connection_timeout=5):
 
                     # received a message within timeout
                     if message is not None and message_name != "BAD_DATA" and not message_name.startswith("UNKNOWN"):
+
                         # get message buffer
                         message_buffer = message.get_msgbuf()
 
                         # check if vehicle exist
                         if vehicle is not None:
+
                             # send the received message from endpoint to vehicle
                             vehicle.write(message_buffer)
 
@@ -224,6 +245,7 @@ def connection_endpoint(connection_string, connection_timeout=5):
 
                 # check endpoint is existed
                 if endpoint is not None:
+
                     # close the endpoint
                     endpoint.close()
 
@@ -238,6 +260,7 @@ def connection_endpoint(connection_string, connection_timeout=5):
 
             # check endpoint is existed
             if endpoint is not None:
+
                 # close the endpoint
                 endpoint.close()
 
@@ -250,7 +273,7 @@ def connection_endpoint(connection_string, connection_timeout=5):
 
 @click.command()
 @click.option("--master", default="tcp:127.0.0.1:5760", type=click.STRING, required=False,
-              help="Standard MAVLink connection string of vehicle.")
+              help="Comma seperated MAVLink connection string list of vehicle.")
 @click.option("--out", default="udpout:127.0.0.1:14550", type=click.STRING, required=False,
               help="Comma seperated MAVLink connection string list of endpoints.")
 @click.option("--timeout", default=5.0, type=click.FloatRange(min=5, clamp=True), required=False,
@@ -263,10 +286,14 @@ def main(master, out, timeout, rate):
     global vehicle, endpoints
     global thread_vehicle, thread_endpoints
 
+    # parse master connection strings
+    master_connections = master.split(",")
+
     # start master connection thread
-    thread_vehicle = threading.Thread(target=connection_vehicle, args=(master, timeout, rate))
+    thread_vehicle = threading.Thread(target=connection_vehicle, args=(master_connections, timeout, rate))
     thread_vehicle.start()
 
+    # parse all endpoints
     for device in out.split(","):
         # start slave connection thread
         connection_thread_endpoint = threading.Thread(target=connection_endpoint,
