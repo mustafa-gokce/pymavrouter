@@ -36,6 +36,9 @@ def connection_vehicle(master_connections, connection_timeout=5.0, message_rate=
         # initiate vehicle
         vehicle = None
 
+        # get the time
+        time_start = time.monotonic()
+
         # try to connect to vehicle
         try:
 
@@ -78,35 +81,34 @@ def connection_vehicle(master_connections, connection_timeout=5.0, message_rate=
         # this will run until terminate or vehicle connection lost
         while True:
 
+            # break if termination is requested
+            if terminate or time.monotonic() - time_start > connection_timeout:
+
+                # check vehicle is existed
+                if vehicle is not None:
+                    # close the vehicle
+                    vehicle.close()
+
+                    # clear the vehicle connection
+                    vehicle = None
+
+                # break if timeout occurred
+                break
+
             # try to receive and send a message from vehicle to endpoint
             try:
 
                 # check vehicle is existed
                 if vehicle is not None:
 
-                    # try to receive a message within timeout
-                    message = vehicle.recv_match(blocking=True, timeout=connection_timeout)
-
-                    # not received a message within timeout or user requested program termination
-                    if message is None or terminate:
-
-                        # check vehicle is existed
-                        if vehicle is not None:
-                            # close the vehicle
-                            vehicle.close()
-
-                            # clear the vehicle connection
-                            vehicle = None
-
-                        # break the inner loop
-                        break
-
-                    # get the message name
-                    message_content = message.to_dict()
-                    message_name = message_content["mavpackettype"]
+                    # try to receive a message
+                    message = vehicle.recv_msg()
 
                     # received a message within timeout
-                    if message is not None and message_name != "BAD_DATA" and not message_name.startswith("UNKNOWN"):
+                    if message is not None:
+
+                        # get the time
+                        time_start = time.monotonic()
 
                         # get message buffer
                         message_buffer = message.get_msgbuf()
@@ -119,6 +121,12 @@ def connection_vehicle(master_connections, connection_timeout=5.0, message_rate=
                                 # send the received message from vehicle to endpoint
                                 endpoint.write(message_buffer)
 
+                    # did not receive a message within timeout
+                    else:
+
+                        # cool down the message receiving
+                        time.sleep(0.01)
+
                 # vehicle does not exist
                 else:
 
@@ -127,35 +135,11 @@ def connection_vehicle(master_connections, connection_timeout=5.0, message_rate=
 
             # unknown error occurred during receive and send a message from vehicle to endpoint
             except Exception as e:
-
-                # check vehicle is existed
-                if vehicle is not None:
-                    # close the vehicle
-                    vehicle.close()
-
-                    # clear the vehicle connection
-                    vehicle = None
-
-                # break the inner loop
-                break
-
-        # user requested program termination
-        if terminate:
-
-            # check vehicle is existed
-            if vehicle is not None:
-                # close the vehicle
-                vehicle.close()
-
-                # clear the vehicle connection
-                vehicle = None
-
-            # break the outer loop
-            break
+                pass
 
 
 # connect to endpoint
-def connection_endpoint(connection_string, connection_timeout=5):
+def connection_endpoint(index, connection_string, connection_timeout=5):
     # get global variables
     global terminate
     global vehicle, endpoints
@@ -174,6 +158,9 @@ def connection_endpoint(connection_string, connection_timeout=5):
         # initiate endpoint
         endpoint = None
 
+        # get the time
+        time_start = time.monotonic()
+
         # try to connect to endpoint
         try:
 
@@ -181,7 +168,7 @@ def connection_endpoint(connection_string, connection_timeout=5):
             endpoint = utility.mavlink_connection(device=connection_string, udp_timeout=connection_timeout, baud=baud)
 
             # add endpoint connection to list
-            endpoints.append(endpoint)
+            endpoints[index] = endpoint
 
         except Exception as e:
 
@@ -202,52 +189,8 @@ def connection_endpoint(connection_string, connection_timeout=5):
         # this will run until terminate or endpoint connection lost
         while True:
 
-            # try to receive and send a message from endpoint to vehicle
-            try:
-
-                # check endpoint is existed
-                if endpoint is not None:
-
-                    # try to receive a message within timeout
-                    message = endpoint.recv_match(blocking=True, timeout=connection_timeout)
-
-                    # not received a message within timeout or user requested program termination
-                    if message is None or terminate:
-
-                        # check endpoint is existed
-                        if endpoint is not None:
-                            # close the endpoint
-                            endpoint.close()
-
-                            # clear the endpoint connection
-                            endpoint = None
-
-                        # break the inner loop
-                        break
-
-                    # get the message name
-                    message_content = message.to_dict()
-                    message_name = message_content["mavpackettype"]
-
-                    # received a message within timeout
-                    if message is not None and message_name != "BAD_DATA" and not message_name.startswith("UNKNOWN"):
-
-                        # get message buffer
-                        message_buffer = message.get_msgbuf()
-
-                        # check if vehicle exist
-                        if vehicle is not None:
-                            # send the received message from endpoint to vehicle
-                            vehicle.write(message_buffer)
-
-                # vehicle does not exist
-                else:
-
-                    # break the inner loop
-                    break
-
-            # unknown error occurred during receive and send a message from endpoint to vehicle
-            except Exception as e:
+            # break if termination is requested
+            if terminate or time.monotonic() - time_start > connection_timeout:
 
                 # check endpoint is existed
                 if endpoint is not None:
@@ -257,22 +200,47 @@ def connection_endpoint(connection_string, connection_timeout=5):
                     # clear the endpoint connection
                     endpoint = None
 
-                # break the inner loop
+                # break if timeout occurred
                 break
 
-        # user requested program termination
-        if terminate:
+            # try to receive and send a message from endpoint to vehicle
+            try:
 
-            # check endpoint is existed
-            if endpoint is not None:
-                # close the endpoint
-                endpoint.close()
+                # check endpoint is existed
+                if endpoint is not None:
 
-                # clear the endpoint connection
-                endpoint = None
+                    # try to receive a message
+                    message = endpoint.recv_msg()
 
-            # break the outer loop
-            break
+                    # received a message within timeout
+                    if message is not None:
+
+                        # get the time
+                        time_start = time.monotonic()
+
+                        # get message buffer
+                        message_buffer = message.get_msgbuf()
+
+                        # check if vehicle exist
+                        if vehicle is not None:
+                            # send the received message from endpoint to vehicle
+                            vehicle.write(message_buffer)
+
+                    # did not receive a message within timeout
+                    else:
+
+                        # cool down the message receiving
+                        time.sleep(0.01)
+
+                # vehicle does not exist
+                else:
+
+                    # break the inner loop
+                    break
+
+            # unknown error occurred during receive and send a message from endpoint to vehicle
+            except Exception as e:
+                pass
 
 
 @click.command()
@@ -298,10 +266,13 @@ def main(master, out, timeout, rate):
     thread_vehicle.start()
 
     # parse all endpoints
-    for device in out.split("+"):
+    for i, device in enumerate(out.split("+")):
+        # resize endpoints list
+        endpoints.append(None)
+
         # start slave connection thread
         connection_thread_endpoint = threading.Thread(target=connection_endpoint,
-                                                      args=(device, timeout))
+                                                      args=(i, device, timeout))
         connection_thread_endpoint.start()
         thread_endpoints.append(connection_thread_endpoint)
 
