@@ -1,8 +1,12 @@
+import os
 import time
 import threading
 import click
 import pymavlink.mavutil as utility
 import pymavlink.dialects.v20.all as dialect
+
+# always use MAVLink 2.0
+os.environ["MAVLINK20"] = "1"
 
 # global variables
 terminate = False
