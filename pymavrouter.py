@@ -47,7 +47,12 @@ def connection_vehicle(master_connections, connection_timeout=5.0, message_rate=
         try:
 
             # create vehicle connection
-            vehicle = utility.mavlink_connection(device=connection_string, udp_timeout=connection_timeout, baud=baud)
+            vehicle = utility.mavlink_connection(device=connection_string,
+                                                 baud=baud,
+                                                 autoreconnect=True,
+                                                 force_connected=True,
+                                                 udp_timeout=connection_timeout,
+                                                 timeout=connection_timeout)
 
             # user requested all the available streams from vehicle
             if message_rate > 0:
@@ -169,7 +174,12 @@ def connection_endpoint(index, connection_string, connection_timeout=5):
         try:
 
             # create endpoint connection
-            endpoint = utility.mavlink_connection(device=connection_string, udp_timeout=connection_timeout, baud=baud)
+            endpoint = utility.mavlink_connection(device=connection_string,
+                                                  baud=baud,
+                                                  autoreconnect=True,
+                                                  force_connected=True,
+                                                  udp_timeout=connection_timeout,
+                                                  timeout=connection_timeout)
 
             # add endpoint connection to list
             endpoints[index] = endpoint
