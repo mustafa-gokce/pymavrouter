@@ -75,8 +75,18 @@ def connection_vehicle(master_connections, connection_timeout=5.0, message_rate=
 
             # there is a vehicle object
             if vehicle is not None:
-                # close the vehicle
-                vehicle.close()
+
+                # try to close the vehicle
+                try:
+
+                    # close the vehicle
+                    vehicle.close()
+
+                # unknown error occurred during closing the vehicle
+                except Exception as e:
+
+                    # ignore the error
+                    pass
 
                 # clear the vehicle connection
                 vehicle = None
@@ -95,8 +105,18 @@ def connection_vehicle(master_connections, connection_timeout=5.0, message_rate=
 
                 # check vehicle is existed
                 if vehicle is not None:
-                    # close the vehicle
-                    vehicle.close()
+
+                    # try to close the vehicle
+                    try:
+
+                        # close the vehicle
+                        vehicle.close()
+
+                    # unknown error occurred during closing the vehicle
+                    except Exception as e:
+
+                        # ignore the error
+                        pass
 
                     # clear the vehicle connection
                     vehicle = None
@@ -188,8 +208,18 @@ def connection_endpoint(index, connection_string, connection_timeout=5):
 
             # there is an endpoint object
             if endpoint is not None:
-                # close the endpoint
-                endpoint.close()
+
+                # try to close the endpoint
+                try:
+
+                    # close the endpoint
+                    endpoint.close()
+
+                # unknown error occurred during closing the endpoint
+                except Exception as e:
+
+                    # ignore the error
+                    pass
 
                 # clear the endpoint connection
                 endpoint = None
@@ -208,8 +238,18 @@ def connection_endpoint(index, connection_string, connection_timeout=5):
 
                 # check endpoint is existed
                 if endpoint is not None:
-                    # close the endpoint
-                    endpoint.close()
+
+                    # try to close the endpoint
+                    try:
+
+                        # close the endpoint
+                        endpoint.close()
+
+                    # unknown error occurred during closing the endpoint
+                    except Exception as e:
+
+                        # ignore the error
+                        pass
 
                     # clear the endpoint connection
                     endpoint = None
